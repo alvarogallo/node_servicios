@@ -1,4 +1,7 @@
-// app.js - Servidor principal para el juego de bingo (versión simplificada)
+// app.js - Servidor de bingo con dotenv
+// Cargar variables de entorno lo antes posible
+require('dotenv').config();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { BingoGame } = require('./bingo');
@@ -6,47 +9,62 @@ const { BingoGame } = require('./bingo');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware para analizar cuerpos JSON
+// Middleware básicos
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Ruta para iniciar el juego de bingo
-app.get('/start_bingo/:params', async (req, res) => {
+// Ruta principal - solo devuelve JSON
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Servidor de bingo activo',
+    socket: {
+      url: process.env.SOCKET_URL || 'No configurado',
+      canal: process.env.SOCKET_CANAL || 'No configurado'
+    }
+  });
+});
+
+// Ruta para iniciar bingo
+app.get('/start_bingo/:params', (req, res) => {
   try {
-    console.log('Recibiendo solicitud en /start_bingo con parámetros:', req.params.params);
+    console.log('Recibiendo solicitud con parámetros:', req.params.params);
     
-    // Decodificar los parámetros JSON (si es posible)
+    // Decodificar parámetros
     let params = {};
     try {
       params = JSON.parse(decodeURIComponent(req.params.params));
-    } catch (parseError) {
-      console.log('No se pudieron analizar los parámetros JSON, usando objeto vacío');
+      console.log('Parámetros decodificados:', params);
+    } catch (error) {
+      console.log('Error al parsear parámetros:', error.message);
     }
     
-    // Crear una nueva instancia del juego de bingo
-    const game = new BingoGame(params);
-    
-    // Iniciar el juego (ahora solo muestra 'starting' en el log)
-    const result = await game.start();
-    
-    // Devolver el resultado
-    res.json({
-      status: 'success',
-      message: 'Procesamiento completado',
-      result
+    // Enviar respuesta inmediata
+    res.json({ 
+      status: 'ok', 
+      message: 'Procesando solicitud',
+      params: {
+        codigo: params.codigo || 'Se generará automáticamente',
+        start_in: params.start_in || 0,
+        intervalo: params.intervalo || 10
+      }
     });
+    
+    // Iniciar juego en segundo plano
+    const game = new BingoGame(params);
+    game.start().catch(err => console.error('Error en juego:', err));
     
   } catch (error) {
-    console.error('Error al procesar la solicitud:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Error al procesar la solicitud',
-      error: error.message
-    });
+    console.error('Error general:', error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 });
 
-// Iniciar el servidor
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log(`Socket configurado en: ${process.env.SOCKET_URL || 'No configurado'}`);
+  console.log(`Canal configurado: ${process.env.SOCKET_CANAL || 'No configurado'}`);
+  console.log(`Token configurado: ${process.env.SOCKET_TOKEN ? 'Sí' : 'No'}`);
+  console.log(`Ejemplo: http://localhost:${PORT}/start_bingo/%7B%22codigo%22%3A%22123refd%22%2C%22start_in%22%3A2%2C%22intervalo%22%3A12%7D`);
 });
