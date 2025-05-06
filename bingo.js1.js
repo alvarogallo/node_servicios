@@ -18,16 +18,17 @@ class BingoGame {
     }
     
     // Extraemos el parámetro start_in (minutos para iniciar)
+    // Extraemos el parámetro start_in (minutos para iniciar)
     this.startIn = 0;
     if (params && params.start_in !== undefined) {
-      const minutes = parseInt(params.start_in);
-      // Validamos que sea un número no negativo (permitimos cualquier valor positivo)
-      if (!isNaN(minutes) && minutes >= 0) {
+    const minutes = parseInt(params.start_in);
+    // Validamos que sea un número no negativo (permitimos cualquier valor positivo)
+    if (!isNaN(minutes) && minutes >= 0) {
         this.startIn = minutes;
         console.log(`Tiempo de inicio configurado: ${minutes} minutos`);
-      } else {
+    } else {
         console.log('Valor de start_in inválido, debe ser un número no negativo. Usando 0.');
-      }
+    }
     }
         
     // Extraemos el parámetro intervalo (segundos entre números de bingo)
@@ -49,93 +50,12 @@ class BingoGame {
       canal: process.env.SOCKET_CANAL || 'bingo_revendedor_jugador'
     };
     
-    // Inicializamos el array de números de bingo
+    // Inicializamos el array de números de bingo (1-75)
     this.bingoNumbers = [];
     
-    // Verificamos si se proporcionó una numeración personalizada
-    if (params && params.numeracion) {
-      this.procesarNumeracionPersonalizada(params.numeracion);
-    } else {
-      // Si no hay numeración personalizada, generamos la secuencia estándar (1-75)
-      this.generarSecuenciaEstandar();
-      // Mezclamos los números
-      this.shuffleBingoNumbers();
-    }
-  }
-
-  /**
-   * Procesa una cadena de numeración personalizada para el bingo
-   * @param {string} numeracion - Cadena con 75 números separados por coma
-   */
-  procesarNumeracionPersonalizada(numeracion) {
-    try {
-      // Convertir la cadena a array de números
-      const numeros = numeracion
-        .split(',')
-        .map(num => num.trim())
-        .map(num => parseInt(num))
-        .filter(num => !isNaN(num));
-      
-      // Verificar que tengamos exactamente 75 números válidos
-      if (numeros.length !== 75) {
-        console.error(`Error: La numeración proporcionada debe contener exactamente 75 números (se encontraron ${numeros.length})`);
-        console.log('Usando secuencia estándar mezclada en su lugar.');
-        this.generarSecuenciaEstandar();
-        this.shuffleBingoNumbers();
-        return;
-      }
-      
-      // Verificar que los números estén en el rango 1-75
-      const numerosInvalidos = numeros.filter(num => num < 1 || num > 75);
-      if (numerosInvalidos.length > 0) {
-        console.error(`Error: Todos los números deben estar en el rango 1-75. Números inválidos: ${numerosInvalidos.join(', ')}`);
-        console.log('Usando secuencia estándar mezclada en su lugar.');
-        this.generarSecuenciaEstandar();
-        this.shuffleBingoNumbers();
-        return;
-      }
-      
-      // Verificar que no haya números duplicados
-      const numerosUnicos = new Set(numeros);
-      if (numerosUnicos.size !== 75) {
-        console.error('Error: La numeración contiene números duplicados');
-        console.log('Usando secuencia estándar mezclada en su lugar.');
-        this.generarSecuenciaEstandar();
-        this.shuffleBingoNumbers();
-        return;
-      }
-      
-      // Si todo está correcto, creamos los objetos con letra y número
-      console.log('Usando numeración personalizada proporcionada por el usuario');
-      this.bingoNumbers = numeros.map(numero => {
-        let letra = '';
-        if (numero <= 15) letra = 'B';
-        else if (numero <= 30) letra = 'I';
-        else if (numero <= 45) letra = 'N';
-        else if (numero <= 60) letra = 'G';
-        else letra = 'O';
-        
-        return {
-          numero: numero,
-          letra: letra,
-          combinacion: `${letra}${numero}`
-        };
-      });
-    } catch (error) {
-      console.error('Error al procesar la numeración personalizada:', error);
-      console.log('Usando secuencia estándar mezclada en su lugar.');
-      this.generarSecuenciaEstandar();
-      this.shuffleBingoNumbers();
-    }
-  }
-
-  /**
-   * Genera la secuencia estándar de números de bingo (1-75)
-   */
-  generarSecuenciaEstandar() {
-    this.bingoNumbers = [];
     // En el bingo, los números se asocian con letras:
     // B: 1-15, I: 16-30, N: 31-45, G: 46-60, O: 61-75
+    // Creamos un array de objetos con número y letra
     for (let i = 1; i <= 75; i++) {
       let letra = '';
       if (i <= 15) letra = 'B';
@@ -150,6 +70,9 @@ class BingoGame {
         combinacion: `${letra}${i}`
       });
     }
+    
+    // Mezclamos los números
+    this.shuffleBingoNumbers();
   }
 
   /**
@@ -174,10 +97,15 @@ class BingoGame {
   /**
    * Envía un mensaje al servidor de sockets
    * @param {Object} mensaje - Mensaje a enviar
-   * @param {number} numeroDeLaSerie - Número de orden (1-75)
    * @returns {Promise} Promesa que se resuelve con la respuesta
    */
-  async enviarASocket(mensaje, numeroDeLaSerie) {
+/**
+ * Envía un mensaje al servidor de sockets
+ * @param {Object} mensaje - Mensaje a enviar
+ * @param {number} numeroDeLaSerie - Número de orden (1-75)
+ * @returns {Promise} Promesa que se resuelve con la respuesta
+ */
+async enviarASocket(mensaje, numeroDeLaSerie) {
     return new Promise((resolve, reject) => {
       const arr_viene = {
         numero: mensaje.combinacion,
@@ -285,12 +213,11 @@ class BingoGame {
       console.error('Error al crear la solicitud faltan:', error);
     }
   }
-
-  /**
-   * Iniciar el juego de bingo (con contador regresivo e intervalo)
-   * @returns {Promise} Resultado del juego
-   */
-  async start() {
+/**
+ * Iniciar el juego de bingo (con contador regresivo e intervalo)
+ * @returns {Promise} Resultado del juego
+ */
+async start() {
     console.log(`Iniciando juego con código: ${this.codigo}`);
     console.log(`Usando servidor de sockets: ${this.socketConfig.url}`);
     
@@ -329,7 +256,7 @@ class BingoGame {
     console.log(`Esperando ${this.intervalo} segundos antes del primer número...`);
     await this.delay(this.intervalo * 1000);
     
-    // Mostramos todos los números de bingo con el intervalo especificado
+    // Mostramos todos los números de bingo (1-75) con el intervalo especificado
     const numerosMostrados = [];
     
     // Recorremos todos los números mezclados
@@ -372,6 +299,11 @@ class BingoGame {
       numerosMostrados: numerosMostrados.map(item => `${item.combinacion} (${item.posicion}/75)`)
     };
   }
+  /**
+   * Iniciar el juego de bingo (con contador regresivo e intervalo)
+   * @returns {Promise} Resultado del juego
+   */
+
 }
 
 module.exports = { BingoGame };

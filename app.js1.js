@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Servidor de bingo activo',
-    usage: 'Enviar petición POST a /start_bingo con un objeto JSON que contenga: codigo, start_in, intervalo y opcionalmente numeracion',
+    usage: 'Enviar petición POST a /start_bingo con un objeto JSON que contenga: codigo, start_in e intervalo',
     socket: {
       url: process.env.SOCKET_URL || 'No configurado',
       canal: process.env.SOCKET_CANAL || 'No configurado'
@@ -42,9 +42,6 @@ app.post('/start_bingo', (req, res) => {
       });
     }
     
-    // Verificar si se incluye numeración personalizada
-    const hasCustomNumbers = params.numeracion && typeof params.numeracion === 'string';
-    
     // Enviar respuesta inmediata
     res.json({ 
       status: 'ok', 
@@ -52,8 +49,7 @@ app.post('/start_bingo', (req, res) => {
       params: {
         codigo: params.codigo || 'Se generará automáticamente',
         start_in: params.start_in || 0,
-        intervalo: params.intervalo || 10,
-        numeracion: hasCustomNumbers ? 'Personalizada proporcionada' : 'Generada automáticamente'
+        intervalo: params.intervalo || 10
       }
     });
     
@@ -85,9 +81,6 @@ app.get('/start_bingo/:params', (req, res) => {
       });
     }
     
-    // Verificar si se incluye numeración personalizada
-    const hasCustomNumbers = params.numeracion && typeof params.numeracion === 'string';
-    
     // Enviar respuesta inmediata
     res.json({ 
       status: 'ok', 
@@ -95,8 +88,7 @@ app.get('/start_bingo/:params', (req, res) => {
       params: {
         codigo: params.codigo || 'Se generará automáticamente',
         start_in: params.start_in || 0,
-        intervalo: params.intervalo || 10,
-        numeracion: hasCustomNumbers ? 'Personalizada proporcionada' : 'Generada automáticamente'
+        intervalo: params.intervalo || 10
       }
     });
     
@@ -116,5 +108,5 @@ app.listen(PORT, () => {
   console.log(`Socket configurado en: ${process.env.SOCKET_URL || 'No configurado'}`);
   console.log(`Canal configurado: ${process.env.SOCKET_CANAL || 'No configurado'}`);
   console.log(`Token configurado: ${process.env.SOCKET_TOKEN ? 'Sí' : 'No'}`);
-  console.log('Para usar vía POST: curl -X POST -H "Content-Type: application/json" -d \'{"codigo":"juego_123","start_in":2,"intervalo":10,"numeracion":"1,2,3,4,5,..."}\' http://localhost:3000/start_bingo');
+  console.log('Para usar vía POST: curl -X POST -H "Content-Type: application/json" -d \'{"codigo":"juego_123","start_in":2,"intervalo":10}\' http://localhost:3000/start_bingo');
 });
